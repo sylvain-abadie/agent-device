@@ -259,6 +259,7 @@ export async function createLimrunIosRunner(
     resetTarget,
     dispose: async () => {
       await applicationTools.finalizeRunnerSessionsForShutdown();
+      await transport.shutdown();
       lifetime.abort();
       await products?.catch(() => {});
       if (staging) await fs.rm(staging, { recursive: true, force: true });

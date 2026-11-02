@@ -36,6 +36,8 @@ enum CommandType: String, Codable, CaseIterable {
   case status
   case uptime
   case appState
+  /// Reads the Simulator AX bridge tree on the transport, off the XCTest main thread.
+  case snapshotBridge
   case pasteboardWrite
   case activate
   case terminate
@@ -278,6 +280,7 @@ struct Command: Codable {
   let coordinateTapTextInputEvidence: CoordinateTapTextInputEvidence?
   let litPanel: RunnerLitPanelFact?
   let steps: [SequenceStep]?
+  let snapshotBridge: SnapshotBridgeCommandPayload?
 }
 
 extension Command {
@@ -306,6 +309,11 @@ extension Command {
     case .status, .appState:
       return .runnerCaptureRead(retainsJournalResponseJson: true)
 
+    // The bridge read answers from AXRuntime, never through the session app, and the transport serves
+    // it before the journal, so no response is ever stored to replay.
+    case .snapshotBridge:
+      return .runnerCaptureRead(retainsJournalResponseJson: false)
+
     case .screenshot:
       return .runnerCaptureRead(retainsJournalResponseJson: false)
 
@@ -330,6 +338,22 @@ extension Command {
       return .appMutation
     }
   }
+}
+
+/// One request to the Simulator AX bridge reader that the runner serves (`RunnerSnapshotBridge.h`). The
+/// bounds are the guest bridge's own `describe` fields; `expectedPid` and `expectedProcessStartTime` name
+/// the app generation the host planned the read against.
+struct SnapshotBridgeCommandPayload: Codable {
+  let verb: String
+  let requestId: String
+  let generation: String?
+  let expectedPid: Int?
+  let expectedProcessStartTime: String?
+  let maxDepth: Int?
+  let maxNodes: Int?
+  let maxDurationMs: Int?
+  let maxResponseBytes: Int?
+  let nativeLevelsHint: Int?
 }
 
 enum ScrollReleaseBehavior: String, Codable {
@@ -529,6 +553,9 @@ struct DataPayload: Codable {
   /// crawl still grinds, so the healthy response must carry the live occupancy rather than let the
   /// daemon read `ok` as proof the runner drained (#2552).
   var runnerMainThreadBusy: Bool?
+  /// The Simulator AX bridge envelope, serialized as the guest bridge would write it, so the host
+  /// validates one envelope format whichever process read the tree.
+  var snapshotBridgeEnvelope: String?
   var completedSteps: Int?
   var failedStepIndex: Int?
   var sequenceResults: [SequenceStepResult]?
