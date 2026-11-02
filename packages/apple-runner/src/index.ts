@@ -58,7 +58,7 @@ export {
   resolveRunnerSigningBuildSettings,
 } from './runner-cache-metadata.ts';
 export {
-  SHARED_FOREGROUND_GEOMETRY_HEADER_FILENAME,
+  SHARED_SNAPSHOT_BRIDGE_READER_FILENAMES,
   resolveRunnerDerivedOverride,
 } from './apple-runner-platform.ts';
 export {
